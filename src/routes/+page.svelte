@@ -1,2 +1,43 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the documentation</p>
+<script lang="ts">
+  import { CrosswordGenerator } from '$lib/CrosswordGenerator';
+  import { words } from '$lib/words';
+
+  const gen = new CrosswordGenerator({ words });
+
+  gen.generate();
+</script>
+
+<table>
+  <tbody>
+    {#each gen.grid as row}
+      <tr>
+        {#each row as char}
+          <td><div>{char}</div></td>
+        {/each}
+      </tr>
+    {/each}
+  </tbody>
+</table>
+
+<style>
+  table {
+    border-collapse: collapse;
+    border: 1px solid black;
+
+    font-family: monospace;
+    font-size: 24px;
+    font-weight: 700;
+  }
+
+  td {
+    border: 1px solid black;
+    width: 30px;
+    height: 30px;
+  }
+
+  td div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
