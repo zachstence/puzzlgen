@@ -2,6 +2,17 @@ interface CrosswordGeneratorArgs {
   words: string[];
 }
 
+type Direction = 'right' | 'down';
+
+interface CharLocation {
+  row: number;
+  col: number;
+}
+
+interface WordLocation extends CharLocation {
+  direction: Direction;
+}
+
 export class CrosswordGenerator {
   constructor(readonly args: CrosswordGeneratorArgs) {}
 
@@ -62,13 +73,13 @@ export class CrosswordGenerator {
 
     // Empty grid, this is the first word
     if (!this._grid[0] || !this._grid[0][0]) {
-      this.placeWordAt(word, 0, 0, 'right');
+      this.placeWordAt(word, { row: 0, col: 0, direction: 'right' });
       return;
     }
 
     const [firstChar, ...restChars] = word;
 
-    // Gather possible locations for the first character
+    // Gather all possible locations for the first character
     const firstCharLocations = this.findCharLocations(firstChar);
     console.log({ firstCharLocations });
 
@@ -79,16 +90,16 @@ export class CrosswordGenerator {
 
     // Place word at first possible location, trying both down and right directions
     // TODO examine all locations/directions and use the best based on a heuristic
-    const [row, col] = firstCharLocations[0]!;
+    const { row, col } = firstCharLocations[0]!;
     try {
-      this.placeWordAt(word, row, col, 'down');
+      this.placeWordAt(word, { row, col, direction: 'down' });
       return;
     } catch {
       // Continue
     }
 
     try {
-      this.placeWordAt(word, row, col, 'right');
+      this.placeWordAt(word, { row, col, direction: 'right' });
       return;
     } catch {
       // Continue
@@ -97,26 +108,22 @@ export class CrosswordGenerator {
     this._cantPlace.push(word);
   };
 
-  private placeWordAt = (
-    word: string,
-    row: number,
-    col: number,
-    direction: 'down' | 'right'
-  ): void => {
+  private placeWordAt = (word: string, location: WordLocation): void => {
+    const { row, col, direction } = location;
     const chars = word.split('');
     chars.forEach((char, i) =>
-      this.placeCharAt(
-        char,
-        direction === 'down' ? row + i : row,
-        direction === 'right' ? col + i : col
-      )
+      this.placeCharAt(char, {
+        row: direction === 'down' ? row + i : row,
+        col: direction === 'right' ? col + i : col
+      })
     );
   };
 
-  private placeCharAt = (char: string, row: number, col: number): void => {
+  private placeCharAt = (char: string, location: CharLocation): void => {
     if (char.length !== 1) throw new InvalidCharacterError(char);
 
-    const existing = this.charAt(row, col);
+    const { row, col } = location;
+    const existing = this.charAt({ row, col });
     if (existing && existing !== char) {
       throw new Error(
         `Cannot place character '${char}' at (${row},${col}), it is already filled by ${existing}.`
@@ -127,20 +134,22 @@ export class CrosswordGenerator {
     this._grid[row][col] = char;
   };
 
-  private charAt = (row: number, col: number): string | undefined => {
+  private charAt = (location: CharLocation): string | undefined => {
+    const { row, col } = location;
     return this._grid[row]?.[col];
   };
 
-  private findCharLocations = (char: string): [number, number][] => {
+  private findCharLocations = (char: string): CharLocation[] => {
     if (char.length !== 1) throw new InvalidCharacterError(char);
 
-    const filledCells: [number, number][] = Object.keys(this._grid).flatMap((row) =>
-      Object.keys(this._grid[parseInt(row)]).map(
-        (col) => [parseInt(row), parseInt(col)] as [number, number]
-      )
+    const filledCells: CharLocation[] = Object.keys(this._grid).flatMap((row) =>
+      Object.keys(this._grid[parseInt(row)]).map((col) => ({
+        row: parseInt(row),
+        col: parseInt(col)
+      }))
     );
 
-    const cellsWithChar = filledCells.filter(([row, col]) => this._grid[row][col] === char);
+    const cellsWithChar = filledCells.filter(({ row, col }) => this._grid[row][col] === char);
     return cellsWithChar;
   };
 }
