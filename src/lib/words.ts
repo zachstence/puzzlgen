@@ -1,12 +1,12 @@
 export const words = [
   'programming',
-  // 'object',
+  'object',
   // 'javascript',
   // 'typescript',
-  // 'string',
+  'string',
   // 'integer',
   // 'float',
-  'number'
+  'number',
   // 'double',
   // 'keyboard',
   // 'debug',
