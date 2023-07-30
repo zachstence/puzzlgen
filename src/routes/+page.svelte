@@ -19,6 +19,12 @@
   </tbody>
 </table>
 
+<div class="cantPlace">
+  {#each gen.cantPlace as word}
+    <span>{word}</span>
+  {/each}
+</div>
+
 <style>
   table {
     border-collapse: collapse;
@@ -39,5 +45,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .cantPlace {
+    display: flex;
+    flex-direction: column;
   }
 </style>
