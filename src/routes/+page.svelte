@@ -2,7 +2,14 @@
   import { CrosswordGenerator } from '$lib/CrosswordGenerator';
   import { words } from '$lib/words';
 
-  const gen = new CrosswordGenerator({ words });
+  const gen = new CrosswordGenerator({
+    words,
+    weights: {
+      minimizeHeight: 0.45,
+      minimizeWidth: 0.45,
+      maximizeIntersections: 0.1,
+    },
+  });
 
   gen.generate();
 </script>

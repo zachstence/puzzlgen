@@ -1,6 +1,11 @@
 interface CrosswordGeneratorArgs {
   words: string[];
   randomizeWords?: boolean;
+  weights: {
+    minimizeWidth: number;
+    minimizeHeight: number;
+    maximizeIntersections: number;
+  };
 }
 
 const DIRECTIONS = ['right', 'down'] as const;
@@ -13,6 +18,21 @@ interface CharLocation {
 
 interface WordLocation extends CharLocation {
   direction: Direction;
+}
+
+type Grid = Record<number, Record<number, string>>;
+
+interface GridDimensions {
+  rows: {
+    min: number;
+    max: number;
+    count: number;
+  };
+  cols: {
+    min: number;
+    max: number;
+    count: number;
+  };
 }
 
 const BLOCKED_CELL_CHAR = '​';
@@ -28,37 +48,21 @@ export class CrosswordGenerator {
 
   private _words: string[];
 
-  private _grid: Record<number, Record<number, string>> = {};
+  private _grid: Grid = {};
 
   private _cantPlace: string[] = [];
 
   get grid(): string[][] {
     const out: string[][] = [];
 
-    const rowLimits = Object.keys(this._grid)
-      .map((s) => parseInt(s))
-      .reduce(
-        ({ min, max }, curr) => ({
-          min: Math.min(min, curr),
-          max: Math.max(max, curr),
-        }),
-        { min: Infinity, max: -Infinity },
-      );
+    const {
+      rows: { min: rowsMin, max: rowsMax },
+      cols: { min: colsMin, max: colsMax },
+    } = this.getDimensions();
 
-    const colLimits = Object.values(this._grid)
-      .flatMap((cols) => Object.keys(cols))
-      .map((s) => parseInt(s))
-      .reduce(
-        ({ min, max }, curr) => ({
-          min: Math.min(min, curr),
-          max: Math.max(max, curr),
-        }),
-        { min: Infinity, max: -Infinity },
-      );
-
-    for (let r = rowLimits.min; r <= rowLimits.max; r++) {
+    for (let r = rowsMin; r <= rowsMax; r++) {
       const row: string[] = [];
-      for (let c = colLimits.min; c <= colLimits.max; c++) {
+      for (let c = colsMin; c <= colsMax; c++) {
         const char = this._grid[r][c];
         if (char && char !== BLOCKED_CELL_CHAR) {
           row.push(char);
@@ -78,11 +82,16 @@ export class CrosswordGenerator {
 
   generate = (): void => {
     console.clear();
-    this._words.forEach((word) => this.placeWord(word));
+    this._words.forEach((word) => {
+      if (word === `${BLOCKED_CELL_CHAR}input${BLOCKED_CELL_CHAR}`)
+        console.group(`Placing ${word}`);
+      else console.groupCollapsed(`Placing ${word}`);
+      this.placeWord(word);
+      console.groupEnd();
+    });
   };
 
   private placeWord = (word: string, grid = this._grid): void => {
-    console.log(`\nPlacing ${word}`);
     // If word has no characters, nothing to place
     if (word.length === 0) return;
 
@@ -99,14 +108,28 @@ export class CrosswordGenerator {
       return;
     }
 
+    const best = allPossibleLocations.reduce(
+      (acc, location) => {
+        const tempGrid = this.copyGrid(this._grid);
+        this.placeWordAt(word, location, tempGrid);
+        const score = this.getScore(tempGrid);
+        console.log({ score, location });
+        if (score < acc.score) return { score, location };
+        else return acc;
+      },
+      { score: Infinity, location: allPossibleLocations[0] },
+    );
+
+    console.log('best', word, best.location);
+
     // For now, place at first location
-    this.placeWordAt(word, allPossibleLocations[0]);
+    this.placeWordAt(word, best.location);
   };
 
   private canPlaceWordAt = (word: string, location: WordLocation, grid = this._grid): boolean => {
     const { row, col, direction } = location;
     const chars = word.split('');
-    return chars.every((char, i) =>
+    const canPlace = chars.every((char, i) =>
       this.canPlaceCharAt(
         char,
         {
@@ -116,6 +139,12 @@ export class CrosswordGenerator {
         grid,
       ),
     );
+
+    if (location.row === -9 && location.col === -2) {
+      console.log('canPlaceWordAt', word, location, canPlace);
+    }
+
+    return canPlace;
   };
 
   private placeWordAt = (word: string, location: WordLocation, grid = this._grid): void => {
@@ -173,7 +202,9 @@ export class CrosswordGenerator {
       // If the group has 3 characters, adding a char would make a 2x2 group
       return charsInGroup.length === 3;
     });
-    if (formsA2x2) return false;
+    if (formsA2x2) {
+      return false;
+    }
 
     return true;
   };
@@ -182,7 +213,7 @@ export class CrosswordGenerator {
     if (char.length !== 1) throw new InvalidCharacterError(char);
 
     if (!this.canPlaceCharAt(char, location)) {
-      throw new Error(`Cannot place character '${char}' at ${location}`);
+      throw new Error(`Cannot place character '${char}' at ${JSON.stringify(location)}`);
     }
 
     const { row, col } = location;
@@ -227,11 +258,82 @@ export class CrosswordGenerator {
       return wordLocations;
     });
 
+    allLocations.forEach((location) => {
+      if (location.row === -9 && location.col === -2) {
+        console.log(location, this.canPlaceWordAt(word, location));
+      }
+    });
+
     const allPossibleLocations = allLocations.filter((location) =>
       this.canPlaceWordAt(word, location),
     );
 
+    console.log({ allPossibleLocations });
+
     return allPossibleLocations;
+  };
+
+  private getDimensions = (grid = this._grid): GridDimensions => {
+    const rowLimits = Object.keys(grid)
+      .map((s) => parseInt(s))
+      .reduce(
+        ({ min, max }, curr) => ({
+          min: Math.min(min, curr),
+          max: Math.max(max, curr),
+        }),
+        { min: Infinity, max: -Infinity },
+      );
+
+    const colLimits = Object.values(grid)
+      .flatMap((cols) => Object.keys(cols))
+      .map((s) => parseInt(s))
+      .reduce(
+        ({ min, max }, curr) => ({
+          min: Math.min(min, curr),
+          max: Math.max(max, curr),
+        }),
+        { min: Infinity, max: -Infinity },
+      );
+
+    return {
+      rows: {
+        min: rowLimits.min,
+        max: rowLimits.max,
+        count: rowLimits.max - rowLimits.min,
+      },
+      cols: {
+        min: colLimits.min,
+        max: colLimits.max,
+        count: colLimits.max - colLimits.min,
+      },
+    };
+  };
+
+  /** Higher is worse */
+  private getScore = (grid = this._grid): number => {
+    const {
+      rows: { count: numRows },
+      cols: { count: numCols },
+    } = this.getDimensions(grid);
+
+    const { minimizeWidth, minimizeHeight, maximizeIntersections } = this.args.weights;
+    const widthScore = numCols * minimizeWidth;
+    const heightScore = numRows * minimizeHeight;
+
+    // incentivize less total characters (more overlap)
+    const totalCharacters = Object.values(grid)
+      .flatMap((row) => Object.values(row))
+      .filter((char) => char !== BLOCKED_CELL_CHAR)
+      .filter(Boolean).length;
+    const charactersScore = totalCharacters * maximizeIntersections;
+
+    return widthScore + heightScore + charactersScore;
+  };
+
+  private copyGrid = (grid: Grid): Grid => {
+    const out: Grid = {};
+    Object.entries(grid).forEach(([key, value]) => (out[parseInt(key)] = { ...value }));
+    return out;
   };
 }
 
