@@ -1,38 +1,9 @@
-# create-svelte
+# crossword-generator
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+Instead of duplicating the grid and trying to place and checking for an error...
 
-## Creating a project
+Loop through the locations and place the characters, keeping track of which ones are new (ie don't include characters from other words)
 
-If you're seeing this, you've probably already done this step. Congrats!
+Once it's placed check all cells around the word and make sure that any filled cells are part of a word that goes in the perpendicular direction (this will require saving this information as we populate the cells)
 
-```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+If the word is invalid !fails check above), simply clear all the cells for the new characters we kept track of

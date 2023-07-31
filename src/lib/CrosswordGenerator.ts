@@ -16,9 +16,25 @@ interface CharLocation {
   col: number;
 }
 
-interface WordLocation extends CharLocation {
+interface WordLocation {
+  row: number;
+  col: number;
   direction: Direction;
 }
+
+interface NotPlacedWord {
+  readonly word: string;
+  placed: false;
+  location: undefined;
+}
+
+interface PlacedWord {
+  readonly word: string;
+  placed: true;
+  location: WordLocation;
+}
+
+export type Word = NotPlacedWord | PlacedWord;
 
 type Grid = Record<number, Record<number, string>>;
 
@@ -35,18 +51,17 @@ interface GridDimensions {
   };
 }
 
-const BLOCKED_CELL_CHAR = '​';
+// const BLOCKED_CELL_CHAR = '​';
+const BLOCKED_CELL_CHAR = '#';
 
 export class CrosswordGenerator {
   constructor(readonly args: CrosswordGeneratorArgs) {}
 
-  private _words: string[] = [];
+  private _words: Word[] = [];
 
   private _grid: Grid = {};
 
-  private _cantPlace: string[] = [];
-
-  get words(): string[] {
+  get words(): Word[] {
     return this._words;
   }
 
@@ -62,9 +77,7 @@ export class CrosswordGenerator {
       const row: string[] = [];
       for (let c = colsMin; c <= colsMax; c++) {
         const char = this._grid[r][c];
-        if (r === 0 && c === 0) {
-          row.push(`[${char}]`);
-        } else if (char && char !== BLOCKED_CELL_CHAR) {
+        if (char /*&& char !== BLOCKED_CELL_CHAR*/) {
           row.push(char);
         } else {
           row.push('');
@@ -76,19 +89,31 @@ export class CrosswordGenerator {
     return out;
   }
 
-  get cantPlace(): string[] {
-    return this._cantPlace;
+  get placed(): PlacedWord[] {
+    return this._words.filter(CrosswordGenerator.isPlacedWord);
+  }
+
+  get notPlaced(): NotPlacedWord[] {
+    return this._words.filter(CrosswordGenerator.isNotPlacedWord);
   }
 
   generate = (): void => {
     this.setup();
-    this._words.forEach((word) => this.placeWord(word));
+    this._words.forEach((word) => {
+      if (!word.placed) {
+        this.placeWord(word);
+      }
+    });
   };
 
   private setup = (): void => {
     this.reset();
 
-    this._words = this.args.words.map((word) => `${BLOCKED_CELL_CHAR}${word}${BLOCKED_CELL_CHAR}`);
+    this._words = this.args.words.map((raw) => ({
+      word: `${BLOCKED_CELL_CHAR}${raw}${BLOCKED_CELL_CHAR}`,
+      placed: false,
+      location: undefined,
+    }));
 
     if (this.args.randomizeWords) {
       this._words.sort(() => Math.round(Math.random() * 2 - 1));
@@ -96,31 +121,33 @@ export class CrosswordGenerator {
   };
 
   private reset = (): void => {
+    this._words = [];
     this._grid = {};
-    this._cantPlace = [];
   };
 
-  private placeWord = (word: string, grid = this._grid): void => {
+  private placeWord = (toPlace: Word, grid = this._grid): void => {
+    const { word } = toPlace;
+
     // If word has no characters, nothing to place
     if (word.length === 0) return;
 
     // Empty grid, this is the first word
     if (!grid[0] || !grid[0][0]) {
-      this.placeWordAt(word, { row: 0, col: 0, direction: 'right' }, grid);
+      this.placeWordAt(toPlace, { row: 0, col: 0, direction: 'right' }, grid);
       return;
     }
 
     const allPossibleLocations: WordLocation[] = this.findAllPossibleWordLocations(word, grid);
 
     if (allPossibleLocations.length === 0) {
-      this._cantPlace.push(word);
+      toPlace.placed = false;
       return;
     }
 
     const best = allPossibleLocations.reduce(
       (acc, location) => {
         const tempGrid = this.copyGrid(this._grid);
-        this.placeWordAt(word, location, tempGrid);
+        this.placeWordAt(toPlace, location, tempGrid);
         const score = this.getScore(tempGrid);
         if (score < acc.score) return { score, location };
         else return acc;
@@ -128,7 +155,7 @@ export class CrosswordGenerator {
       { score: Infinity, location: allPossibleLocations[0] },
     );
 
-    this.placeWordAt(word, best.location, grid);
+    this.placeWordAt(toPlace, best.location, grid);
   };
 
   private canPlaceWordAt = (word: string, location: WordLocation, grid = this._grid): boolean => {
@@ -153,7 +180,8 @@ export class CrosswordGenerator {
     return true;
   };
 
-  private placeWordAt = (word: string, location: WordLocation, grid = this._grid): void => {
+  private placeWordAt = (toPlace: Word, location: WordLocation, grid = this._grid): void => {
+    const { word } = toPlace;
     const { row, col, direction } = location;
     const chars = word.split('');
     chars.forEach((char, i) =>
@@ -166,6 +194,9 @@ export class CrosswordGenerator {
         grid,
       ),
     );
+
+    toPlace.placed = true;
+    toPlace.location = location;
   };
 
   private canPlaceCharAt = (char: string, location: CharLocation, grid = this._grid): boolean => {
@@ -330,6 +361,14 @@ export class CrosswordGenerator {
     const out: Grid = {};
     Object.entries(grid).forEach(([key, value]) => (out[parseInt(key)] = { ...value }));
     return out;
+  };
+
+  private static isPlacedWord = (word: Word): word is PlacedWord => {
+    return word.placed;
+  };
+
+  private static isNotPlacedWord = (word: Word): word is NotPlacedWord => {
+    return !word.placed;
   };
 }
 

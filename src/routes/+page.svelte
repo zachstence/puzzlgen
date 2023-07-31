@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { CrosswordGenerator } from '$lib/CrosswordGenerator';
-  import { words } from '$lib/words';
+  import { CrosswordGenerator, type Word } from '$lib/CrosswordGenerator';
+  import { words as toPlace } from '$lib/words';
 
   const gen = new CrosswordGenerator({
-    words,
+    words: toPlace,
     weights: {
       minimizeHeight: 0.45,
       minimizeWidth: 0.45,
@@ -15,8 +15,7 @@
   let generating = false;
   let generated = false;
   let grid: string[][] = [];
-  let allWords: string[] = [];
-  let notPlaced: string[] = [];
+  let words: Word[] = [];
 
   const generate = (): void => {
     generating = true;
@@ -26,8 +25,7 @@
     generating = false;
 
     grid = gen.grid;
-    allWords = gen.words;
-    notPlaced = gen.cantPlace;
+    words = gen.words;
   };
 </script>
 
@@ -41,65 +39,88 @@
 {/if}
 
 {#if generated}
-  <table>
-    <tbody>
-      {#each grid as row}
+  <div class="generated">
+    <table class="grid">
+      <tbody>
+        {#each grid as row}
+          <tr>
+            {#each row as char}
+              {#if char}
+                <td><div>{char}</div></td>
+              {:else}
+                <td />
+              {/if}
+            {/each}
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+
+    <table class="words">
+      <thead>
         <tr>
-          {#each row as char}
-            {#if char}
-              <td><div>{char}</div></td>
+          <th>Word</th>
+          <th>Placed?</th>
+          <th>Location</th>
+          <th>Direction</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each words as word}
+          <tr>
+            <td>{word.word}</td>
+            <td>{word.placed}</td>
+            {#if word.placed}
+              <td>{word.location.row}, {word.location.col}</td>
+              <td>{word.location.direction}</td>
             {:else}
               <td />
+              <td />
             {/if}
-          {/each}
-        </tr>
-      {/each}
-    </tbody>
-  </table>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </div>
 {/if}
 
-<div class="words">
-  <div>
-    <b>Words</b>
-    {#each allWords as word}
-      <span>{word}</span>
-    {/each}
-  </div>
-  <div>
-    <b>Not Placed</b>
-    {#each notPlaced as word}
-      <span>{word}</span>
-    {/each}
-  </div>
-</div>
-
 <style>
-  table {
-    border-collapse: collapse;
-
-    font-family: monospace;
-    font-size: 24px;
-    font-weight: 700;
+  .generated {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
   }
 
-  td:has(div) {
+  table {
+    border-collapse: collapse;
+    font-family: monospace;
+  }
+
+  table.grid {
+    font-size: 24px;
+  }
+
+  table.grid td:has(div) {
     border: 1px solid black;
     width: 30px;
     height: 30px;
   }
 
-  td div {
+  table.grid td div {
     display: flex;
     align-items: center;
     justify-content: center;
+
+    font-weight: 700;
   }
 
-  .words {
-    display: flex;
-    flex-direction: row;
+  table.words {
+    font-size: 16px;
   }
-  .words > div {
-    display: flex;
-    flex-direction: column;
+
+  table.words td,
+  table.words th {
+    padding: 8px;
+    border: 1px solid black;
   }
 </style>
