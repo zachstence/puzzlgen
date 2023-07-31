@@ -82,13 +82,7 @@ export class CrosswordGenerator {
 
   generate = (): void => {
     console.clear();
-    this._words.forEach((word) => {
-      if (word === `${BLOCKED_CELL_CHAR}input${BLOCKED_CELL_CHAR}`)
-        console.group(`Placing ${word}`);
-      else console.groupCollapsed(`Placing ${word}`);
-      this.placeWord(word);
-      console.groupEnd();
-    });
+    this._words.forEach((word) => this.placeWord(word));
   };
 
   private placeWord = (word: string, grid = this._grid): void => {
@@ -113,38 +107,35 @@ export class CrosswordGenerator {
         const tempGrid = this.copyGrid(this._grid);
         this.placeWordAt(word, location, tempGrid);
         const score = this.getScore(tempGrid);
-        console.log({ score, location });
         if (score < acc.score) return { score, location };
         else return acc;
       },
       { score: Infinity, location: allPossibleLocations[0] },
     );
 
-    console.log('best', word, best.location);
-
-    // For now, place at first location
     this.placeWordAt(word, best.location, grid);
   };
 
   private canPlaceWordAt = (word: string, location: WordLocation, grid = this._grid): boolean => {
     const { row, col, direction } = location;
     const chars = word.split('');
-    const canPlace = chars.every((char, i) =>
-      this.canPlaceCharAt(
-        char,
-        {
-          row: direction === 'down' ? row + i : row,
-          col: direction === 'right' ? col + i : col,
-        },
-        grid,
-      ),
-    );
 
-    if (location.row === -9 && location.col === -2 && location.direction === 'right') {
-      console.log('canPlaceWordAt', { word, location, canPlace, grid });
+    // TODO can we do this without cloning the grid?
+    const tempGrid = this.copyGrid(grid);
+
+    for (let i = 0; i < chars.length; i++) {
+      const char = chars[i];
+      const location = {
+        row: direction === 'down' ? row + i : row,
+        col: direction === 'right' ? col + i : col,
+      };
+
+      const canPlace = this.canPlaceCharAt(char, location, tempGrid);
+      if (!canPlace) return false;
+      this.placeCharAt(char, location, tempGrid);
     }
 
-    return canPlace;
+    return true;
   };
 
   private placeWordAt = (word: string, location: WordLocation, grid = this._grid): void => {
@@ -202,9 +193,7 @@ export class CrosswordGenerator {
       // If the group has 3 characters, adding a char would make a 2x2 group
       return charsInGroup.length === 3;
     });
-    if (formsA2x2) {
-      return false;
-    }
+    if (formsA2x2) return false;
 
     return true;
   };
@@ -258,17 +247,9 @@ export class CrosswordGenerator {
       return wordLocations;
     });
 
-    allLocations.forEach((location) => {
-      if (location.row === -9 && location.col === -2 && location.direction === 'right') {
-        console.log(location, this.canPlaceWordAt(word, location, grid));
-      }
-    });
-
     const allPossibleLocations = allLocations.filter((location) =>
       this.canPlaceWordAt(word, location, grid),
     );
-
-    console.log({ allPossibleLocations });
 
     return allPossibleLocations;
   };
