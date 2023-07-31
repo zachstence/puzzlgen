@@ -97,7 +97,7 @@ export class CrosswordGenerator {
 
     // Empty grid, this is the first word
     if (!grid[0] || !grid[0][0]) {
-      this.placeWordAt(word, { row: 0, col: 0, direction: 'right' });
+      this.placeWordAt(word, { row: 0, col: 0, direction: 'right' }, grid);
       return;
     }
 
@@ -123,7 +123,7 @@ export class CrosswordGenerator {
     console.log('best', word, best.location);
 
     // For now, place at first location
-    this.placeWordAt(word, best.location);
+    this.placeWordAt(word, best.location, grid);
   };
 
   private canPlaceWordAt = (word: string, location: WordLocation, grid = this._grid): boolean => {
@@ -212,7 +212,7 @@ export class CrosswordGenerator {
   private placeCharAt = (char: string, location: CharLocation, grid = this._grid): void => {
     if (char.length !== 1) throw new InvalidCharacterError(char);
 
-    if (!this.canPlaceCharAt(char, location)) {
+    if (!this.canPlaceCharAt(char, location, grid)) {
       throw new Error(`Cannot place character '${char}' at ${JSON.stringify(location)}`);
     }
 
@@ -260,12 +260,12 @@ export class CrosswordGenerator {
 
     allLocations.forEach((location) => {
       if (location.row === -9 && location.col === -2) {
-        console.log(location, this.canPlaceWordAt(word, location));
+        console.log(location, this.canPlaceWordAt(word, location, grid));
       }
     });
 
     const allPossibleLocations = allLocations.filter((location) =>
-      this.canPlaceWordAt(word, location),
+      this.canPlaceWordAt(word, location, grid),
     );
 
     console.log({ allPossibleLocations });
