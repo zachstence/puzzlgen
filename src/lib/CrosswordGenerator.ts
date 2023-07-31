@@ -73,16 +73,16 @@ export class CrosswordGenerator {
 
   generate = (): void => {
     console.clear();
-    this._words.forEach(this.placeWord);
+    this._words.forEach((word) => this.placeWord(word));
   };
 
-  private placeWord = (word: string): void => {
+  private placeWord = (word: string, grid = this._grid): void => {
     console.log(`\nPlacing ${word}`);
     // If word has no characters, nothing to place
     if (word.length === 0) return;
 
     // Empty grid, this is the first word
-    if (!this._grid[0] || !this._grid[0][0]) {
+    if (!grid[0] || !grid[0][0]) {
       this.placeWordAt(word, { row: 0, col: 0, direction: 'right' });
       return;
     }
@@ -98,32 +98,40 @@ export class CrosswordGenerator {
     this.placeWordAt(word, allPossibleLocations[0]);
   };
 
-  private canPlaceWordAt = (word: string, location: WordLocation): boolean => {
+  private canPlaceWordAt = (word: string, location: WordLocation, grid = this._grid): boolean => {
     const { row, col, direction } = location;
     const chars = word.split('');
     return chars.every((char, i) =>
-      this.canPlaceCharAt(char, {
-        row: direction === 'down' ? row + i : row,
-        col: direction === 'right' ? col + i : col,
-      }),
+      this.canPlaceCharAt(
+        char,
+        {
+          row: direction === 'down' ? row + i : row,
+          col: direction === 'right' ? col + i : col,
+        },
+        grid,
+      ),
     );
   };
 
-  private placeWordAt = (word: string, location: WordLocation): void => {
+  private placeWordAt = (word: string, location: WordLocation, grid = this._grid): void => {
     const { row, col, direction } = location;
     const chars = word.split('');
     chars.forEach((char, i) =>
-      this.placeCharAt(char, {
-        row: direction === 'down' ? row + i : row,
-        col: direction === 'right' ? col + i : col,
-      }),
+      this.placeCharAt(
+        char,
+        {
+          row: direction === 'down' ? row + i : row,
+          col: direction === 'right' ? col + i : col,
+        },
+        grid,
+      ),
     );
   };
 
-  private canPlaceCharAt = (char: string, location: CharLocation): boolean => {
+  private canPlaceCharAt = (char: string, location: CharLocation, grid = this._grid): boolean => {
     const { row, col } = location;
 
-    const existing = this.charAt({ row, col });
+    const existing = this.charAt({ row, col }, grid);
 
     // A blocked character should not exist at this location
     if (existing === BLOCKED_CELL_CHAR) return false;
@@ -164,7 +172,7 @@ export class CrosswordGenerator {
     return true;
   };
 
-  private placeCharAt = (char: string, location: CharLocation): void => {
+  private placeCharAt = (char: string, location: CharLocation, grid = this._grid): void => {
     if (char.length !== 1) throw new InvalidCharacterError(char);
 
     if (!this.canPlaceCharAt(char, location)) {
@@ -172,34 +180,34 @@ export class CrosswordGenerator {
     }
 
     const { row, col } = location;
-    if (!this._grid[row]) this._grid[row] = {};
-    this._grid[row][col] = char;
+    if (!grid[row]) grid[row] = {};
+    grid[row][col] = char;
   };
 
-  private charAt = (location: CharLocation): string | undefined => {
+  private charAt = (location: CharLocation, grid = this._grid): string | undefined => {
     const { row, col } = location;
-    return this._grid[row]?.[col];
+    return grid[row]?.[col];
   };
 
-  private findCharLocations = (char: string): CharLocation[] => {
+  private findCharLocations = (char: string, grid = this._grid): CharLocation[] => {
     if (char.length !== 1) throw new InvalidCharacterError(char);
 
-    const filledCells: CharLocation[] = Object.keys(this._grid).flatMap((row) =>
-      Object.keys(this._grid[parseInt(row)]).map((col) => ({
+    const filledCells: CharLocation[] = Object.keys(grid).flatMap((row) =>
+      Object.keys(grid[parseInt(row)]).map((col) => ({
         row: parseInt(row),
         col: parseInt(col),
       })),
     );
 
-    const cellsWithChar = filledCells.filter(({ row, col }) => this._grid[row][col] === char);
+    const cellsWithChar = filledCells.filter(({ row, col }) => grid[row][col] === char);
     return cellsWithChar;
   };
 
-  private findAllPossibleWordLocations = (word: string): WordLocation[] => {
+  private findAllPossibleWordLocations = (word: string, grid = this._grid): WordLocation[] => {
     const chars = word.split('');
 
     const allLocations = chars.flatMap((char, i) => {
-      const charLocations = this.findCharLocations(char);
+      const charLocations = this.findCharLocations(char, grid);
       const wordLocations = charLocations.flatMap(({ row, col }) =>
         DIRECTIONS.flatMap((direction) => {
           return {
