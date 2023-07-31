@@ -1,5 +1,6 @@
 interface CrosswordGeneratorArgs {
   words: string[];
+  randomizeWords?: boolean;
 }
 
 const DIRECTIONS = ['right', 'down'] as const;
@@ -19,6 +20,10 @@ const BLOCKED_CELL_CHAR = '​';
 export class CrosswordGenerator {
   constructor(readonly args: CrosswordGeneratorArgs) {
     this._words = args.words.map((word) => `${BLOCKED_CELL_CHAR}${word}${BLOCKED_CELL_CHAR}`);
+
+    if (args.randomizeWords) {
+      this._words.sort(() => Math.round(Math.random() * 2 - 1));
+    }
   }
 
   private _words: string[];
