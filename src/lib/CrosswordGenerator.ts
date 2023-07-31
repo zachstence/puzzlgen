@@ -35,7 +35,7 @@ interface GridDimensions {
   };
 }
 
-const BLOCKED_CELL_CHAR = '​';
+const BLOCKED_CELL_CHAR = '#';
 
 export class CrosswordGenerator {
   constructor(readonly args: CrosswordGeneratorArgs) {
@@ -64,7 +64,7 @@ export class CrosswordGenerator {
       const row: string[] = [];
       for (let c = colsMin; c <= colsMax; c++) {
         const char = this._grid[r][c];
-        if (char && char !== BLOCKED_CELL_CHAR) {
+        if (char /*&& char !== BLOCKED_CELL_CHAR*/) {
           row.push(char);
         } else {
           row.push('');
