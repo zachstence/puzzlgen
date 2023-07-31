@@ -168,6 +168,7 @@ export class CrosswordGenerator {
         .map(({ row: rowOffset, col: colOffset }) =>
           this.charAt({ row: row + rowOffset, col: col + colOffset }),
         )
+        .filter((char) => char !== BLOCKED_CELL_CHAR)
         .filter(Boolean) as string[];
       // If the group has 3 characters, adding a char would make a 2x2 group
       return charsInGroup.length === 3;
