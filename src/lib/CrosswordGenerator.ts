@@ -14,8 +14,14 @@ interface WordLocation extends CharLocation {
   direction: Direction;
 }
 
+const BLOCKED_CELL_CHAR = '​';
+
 export class CrosswordGenerator {
-  constructor(readonly args: CrosswordGeneratorArgs) {}
+  constructor(readonly args: CrosswordGeneratorArgs) {
+    this._words = args.words.map((word) => `${BLOCKED_CELL_CHAR}${word}${BLOCKED_CELL_CHAR}`);
+  }
+
+  private _words: string[];
 
   private _grid: Record<number, Record<number, string>> = {};
 
@@ -49,8 +55,11 @@ export class CrosswordGenerator {
       const row: string[] = [];
       for (let c = colLimits.min; c <= colLimits.max; c++) {
         const char = this._grid[r][c];
-        if (char) row.push(char);
-        else row.push('');
+        if (char && char !== BLOCKED_CELL_CHAR) {
+          row.push(char);
+        } else {
+          row.push('');
+        }
       }
       out.push(row);
     }
@@ -64,7 +73,7 @@ export class CrosswordGenerator {
 
   generate = (): void => {
     console.clear();
-    this.args.words.forEach(this.placeWord);
+    this._words.forEach(this.placeWord);
   };
 
   private placeWord = (word: string): void => {
@@ -114,8 +123,12 @@ export class CrosswordGenerator {
   private canPlaceCharAt = (char: string, location: CharLocation): boolean => {
     const { row, col } = location;
 
-    // A different character should not already exist at this location
     const existing = this.charAt({ row, col });
+
+    // A blocked character should not exist at this location
+    if (existing === BLOCKED_CELL_CHAR) return false;
+
+    // A different character should not already exist at this location
     if (existing && existing !== char) return false;
 
     // Placing this character cannot form a 2x2 group of characters in the grid
@@ -137,7 +150,7 @@ export class CrosswordGenerator {
       [down, downAndRight, right],
     ];
 
-    const formsA2x2 = groups.some((group, i) => {
+    const formsA2x2 = groups.some((group) => {
       const charsInGroup = group
         .map(({ row: rowOffset, col: colOffset }) =>
           this.charAt({ row: row + rowOffset, col: col + colOffset }),
