@@ -113,10 +113,41 @@ export class CrosswordGenerator {
 
   private canPlaceCharAt = (char: string, location: CharLocation): boolean => {
     const { row, col } = location;
+
+    // A different character should not already exist at this location
     const existing = this.charAt({ row, col });
-    if (existing && existing !== char) {
-      return false;
-    }
+    if (existing && existing !== char) return false;
+
+    // Placing this character cannot form a 2x2 group of characters in the grid
+    const up: CharLocation = { row: -1, col: 0 };
+    const down: CharLocation = { row: 1, col: 0 };
+    const left: CharLocation = { row: 0, col: -1 };
+    const right: CharLocation = { row: 0, col: 1 };
+    const upAndLeft: CharLocation = { row: -1, col: -1 };
+    const upAndRight: CharLocation = { row: -1, col: 1 };
+    const downAndLeft: CharLocation = { row: 1, col: -1 };
+    const downAndRight: CharLocation = { row: 1, col: 1 };
+
+    type Group = [CharLocation, CharLocation, CharLocation];
+    type Groups = [Group, Group, Group, Group];
+    const groups: Groups = [
+      [right, upAndRight, up],
+      [up, upAndLeft, left],
+      [left, downAndLeft, down],
+      [down, downAndRight, right],
+    ];
+
+    const formsA2x2 = groups.some((group, i) => {
+      const charsInGroup = group
+        .map(({ row: rowOffset, col: colOffset }) =>
+          this.charAt({ row: row + rowOffset, col: col + colOffset }),
+        )
+        .filter(Boolean) as string[];
+      // If the group has 3 characters, adding a char would make a 2x2 group
+      return charsInGroup.length === 3;
+    });
+    if (formsA2x2) return false;
+
     return true;
   };
 
@@ -154,24 +185,26 @@ export class CrosswordGenerator {
   private findAllPossibleWordLocations = (word: string): WordLocation[] => {
     const chars = word.split('');
 
-    return chars.flatMap((char, i) => {
+    const allLocations = chars.flatMap((char, i) => {
       const charLocations = this.findCharLocations(char);
-
       const wordLocations = charLocations.flatMap(({ row, col }) =>
         DIRECTIONS.flatMap((direction) => {
-          const wordLocation = {
+          return {
             row: direction === 'down' ? row - i : row,
             col: direction === 'right' ? col - i : col,
             direction,
           };
-          if (this.canPlaceWordAt(word, wordLocation)) {
-            return wordLocation;
-          }
-        }).filter(Boolean),
+        }),
       );
 
-      return wordLocations as WordLocation[];
+      return wordLocations;
     });
+
+    const allPossibleLocations = allLocations.filter((location) =>
+      this.canPlaceWordAt(word, location),
+    );
+
+    return allPossibleLocations;
   };
 }
 

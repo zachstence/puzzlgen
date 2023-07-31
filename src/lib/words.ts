@@ -7,7 +7,7 @@ export const words = [
   // 'integer',
   // 'float',
   'number',
-  // 'double',
+  'double',
   // 'keyboard',
   // 'debug',
   // 'space',
