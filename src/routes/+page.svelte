@@ -9,6 +9,7 @@
       minimizeWidth: 0.45,
       maximizeIntersections: 0.1,
     },
+    randomizeWords: true,
   });
 
   gen.generate();
