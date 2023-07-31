@@ -32,3 +32,16 @@ export const words = [
   // 'variable',
   // 'describe',
 ];
+
+/**
+placeWord
+canPlaceWordAt
+placeWordAt
+canPlaceCharAt
+placeCharAt
+charAt
+findCharLocations
+findAllPossibleWordLocations
+getDimensions
+getScore
+ */

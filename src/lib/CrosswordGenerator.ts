@@ -101,7 +101,7 @@ export class CrosswordGenerator {
       return;
     }
 
-    const allPossibleLocations: WordLocation[] = this.findAllPossibleWordLocations(word);
+    const allPossibleLocations: WordLocation[] = this.findAllPossibleWordLocations(word, grid);
 
     if (allPossibleLocations.length === 0) {
       this._cantPlace.push(word);
@@ -140,8 +140,8 @@ export class CrosswordGenerator {
       ),
     );
 
-    if (location.row === -9 && location.col === -2) {
-      console.log('canPlaceWordAt', word, location, canPlace);
+    if (location.row === -9 && location.col === -2 && location.direction === 'right') {
+      console.log('canPlaceWordAt', { word, location, canPlace, grid });
     }
 
     return canPlace;
@@ -195,7 +195,7 @@ export class CrosswordGenerator {
     const formsA2x2 = groups.some((group) => {
       const charsInGroup = group
         .map(({ row: rowOffset, col: colOffset }) =>
-          this.charAt({ row: row + rowOffset, col: col + colOffset }),
+          this.charAt({ row: row + rowOffset, col: col + colOffset }, grid),
         )
         .filter((char) => char !== BLOCKED_CELL_CHAR)
         .filter(Boolean) as string[];
@@ -259,7 +259,7 @@ export class CrosswordGenerator {
     });
 
     allLocations.forEach((location) => {
-      if (location.row === -9 && location.col === -2) {
+      if (location.row === -9 && location.col === -2 && location.direction === 'right') {
         console.log(location, this.canPlaceWordAt(word, location, grid));
       }
     });
