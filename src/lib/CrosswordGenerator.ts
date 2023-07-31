@@ -38,19 +38,17 @@ interface GridDimensions {
 const BLOCKED_CELL_CHAR = '​';
 
 export class CrosswordGenerator {
-  constructor(readonly args: CrosswordGeneratorArgs) {
-    this._words = args.words.map((word) => `${BLOCKED_CELL_CHAR}${word}${BLOCKED_CELL_CHAR}`);
+  constructor(readonly args: CrosswordGeneratorArgs) {}
 
-    if (args.randomizeWords) {
-      this._words.sort(() => Math.round(Math.random() * 2 - 1));
-    }
-  }
-
-  private _words: string[];
+  private _words: string[] = [];
 
   private _grid: Grid = {};
 
   private _cantPlace: string[] = [];
+
+  get words(): string[] {
+    return this._words;
+  }
 
   get grid(): string[][] {
     const out: string[][] = [];
@@ -64,7 +62,9 @@ export class CrosswordGenerator {
       const row: string[] = [];
       for (let c = colsMin; c <= colsMax; c++) {
         const char = this._grid[r][c];
-        if (char && char !== BLOCKED_CELL_CHAR) {
+        if (r === 0 && c === 0) {
+          row.push(`[${char}]`);
+        } else if (char && char !== BLOCKED_CELL_CHAR) {
           row.push(char);
         } else {
           row.push('');
@@ -81,8 +81,23 @@ export class CrosswordGenerator {
   }
 
   generate = (): void => {
-    console.clear();
+    this.setup();
     this._words.forEach((word) => this.placeWord(word));
+  };
+
+  private setup = (): void => {
+    this.reset();
+
+    this._words = this.args.words.map((word) => `${BLOCKED_CELL_CHAR}${word}${BLOCKED_CELL_CHAR}`);
+
+    if (this.args.randomizeWords) {
+      this._words.sort(() => Math.round(Math.random() * 2 - 1));
+    }
+  };
+
+  private reset = (): void => {
+    this._grid = {};
+    this._cantPlace = [];
   };
 
   private placeWord = (word: string, grid = this._grid): void => {

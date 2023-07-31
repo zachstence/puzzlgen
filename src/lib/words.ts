@@ -2,46 +2,33 @@ export const words = [
   'programming',
   'number',
   'object',
-  'javascript',
-  'typescript',
-  'string',
+  'instance',
+  'output',
+  'character',
   'integer',
+  'class',
+  'javascript',
+  'computer',
+  'string',
+  'developer',
   'float',
+  'typescript',
   'double',
+  'variable',
+  'tab',
   'keyboard',
+  'display',
+  'create',
+  'typing',
+  'engineer',
   'debug',
   'space',
-  'tab',
-  'character',
-  'typing',
-  'backspace',
-  'developer',
-  'engineer',
-  'computer',
-  'display',
-  'print',
   'algorithm',
+  'backspace',
   'input',
-  'output',
-  'generate',
-  'create',
-  'class',
-  'instance',
-  'member',
   'function',
-  'variable',
+  'generate',
+  'print',
   'describe',
+  'member',
 ];
-
-/**
-placeWord
-canPlaceWordAt
-placeWordAt
-canPlaceCharAt
-placeCharAt
-charAt
-findCharLocations
-findAllPossibleWordLocations
-getDimensions
-getScore
- */
