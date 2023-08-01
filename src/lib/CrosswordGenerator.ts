@@ -157,9 +157,11 @@ export class CrosswordGenerator {
 
     const best = allPossibleLocations.reduce(
       (acc, location) => {
-        const tempGrid = this.copyGrid(this._grid);
-        this.placeWordAt(toPlace, location, tempGrid);
-        const score = this.getScore(tempGrid);
+        // Place word, get score, then un-place
+        const newChars = this.placeWordAt(toPlace, location, grid);
+        const score = this.getScore(grid);
+        newChars.forEach(({ location }) => this.clearCharAt(location, grid));
+
         if (score < acc.score) return { score, location };
         else return acc;
       },
@@ -232,7 +234,12 @@ export class CrosswordGenerator {
     return allNeighborsValid;
   };
 
-  private placeWordAt = (toPlace: Word, location: WordLocation, grid = this._grid): void => {
+  /** @returns locations of characters */
+  private placeWordAt = (
+    toPlace: Word,
+    location: WordLocation,
+    grid = this._grid,
+  ): PlacedChar[] => {
     const { word } = toPlace;
     const { row, col, direction } = location;
     const chars = word.split('');
@@ -245,11 +252,17 @@ export class CrosswordGenerator {
       },
     }));
 
-    charPlacements.forEach(({ char, location }) => this.placeCharAt(char, location, grid));
+    const newCharPlacements = charPlacements.filter(
+      (placement) => this.charAt(placement.location, grid) !== placement.char,
+    );
+
+    newCharPlacements.forEach(({ char, location }) => this.placeCharAt(char, location, grid));
 
     toPlace.placed = true;
     toPlace.location = location;
-    toPlace.chars = charPlacements;
+    toPlace.chars = newCharPlacements;
+
+    return newCharPlacements;
   };
 
   private canPlaceCharAt = (char: string, location: CharLocation, grid = this._grid): boolean => {
@@ -278,6 +291,21 @@ export class CrosswordGenerator {
     const { row, col } = location;
     if (!grid[row]) grid[row] = {};
     grid[row][col] = char;
+  };
+
+  private clearCharAt = (location: CharLocation, grid = this._grid): void => {
+    const { row, col } = location;
+
+    if (row in grid && col in grid[row]) {
+      // Delete char in row
+      delete grid[row][col];
+
+      // Delete row if empty
+      const charsInRow = Object.keys(grid[row]).length;
+      if (charsInRow === 0) {
+        delete grid[row];
+      }
+    }
   };
 
   private charAt = (location: CharLocation, grid = this._grid): string | undefined => {
@@ -379,12 +407,6 @@ export class CrosswordGenerator {
     const charactersScore = totalCharacters * maximizeIntersections;
 
     return widthScore + heightScore + charactersScore;
-  };
-
-  private copyGrid = (grid: Grid): Grid => {
-    const out: Grid = {};
-    Object.entries(grid).forEach(([key, value]) => (out[parseInt(key)] = { ...value }));
-    return out;
   };
 
   private static isPlacedWord = (word: Word): word is PlacedWord => {
