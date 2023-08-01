@@ -1,3 +1,5 @@
+import type { reset } from '__sveltekit/paths';
+
 interface CrosswordGeneratorArgs {
   words: string[];
   randomizeWords?: boolean;
@@ -16,6 +18,11 @@ interface CharLocation {
   col: number;
 }
 
+interface PlacedChar {
+  char: string;
+  location: CharLocation;
+}
+
 interface WordLocation {
   row: number;
   col: number;
@@ -26,12 +33,14 @@ interface NotPlacedWord {
   readonly word: string;
   placed: false;
   location: undefined;
+  chars: undefined;
 }
 
 interface PlacedWord {
   readonly word: string;
   placed: true;
   location: WordLocation;
+  chars: PlacedChar[];
 }
 
 export type Word = NotPlacedWord | PlacedWord;
@@ -51,6 +60,7 @@ interface GridDimensions {
   };
 }
 
+// eslint-disable-next-line no-irregular-whitespace
 // const BLOCKED_CELL_CHAR = '​';
 const BLOCKED_CELL_CHAR = '#';
 
@@ -77,7 +87,7 @@ export class CrosswordGenerator {
       const row: string[] = [];
       for (let c = colsMin; c <= colsMax; c++) {
         const char = this._grid[r][c];
-        if (char /*&& char !== BLOCKED_CELL_CHAR*/) {
+        if (char && char !== BLOCKED_CELL_CHAR) {
           row.push(char);
         } else {
           row.push('');
@@ -113,6 +123,7 @@ export class CrosswordGenerator {
       word: `${BLOCKED_CELL_CHAR}${raw}${BLOCKED_CELL_CHAR}`,
       placed: false,
       location: undefined,
+      chars: undefined,
     }));
 
     if (this.args.randomizeWords) {
@@ -162,41 +173,83 @@ export class CrosswordGenerator {
     const { row, col, direction } = location;
     const chars = word.split('');
 
-    // TODO can we do this without cloning the grid?
-    const tempGrid = this.copyGrid(grid);
-
-    for (let i = 0; i < chars.length; i++) {
-      const char = chars[i];
-      const location = {
+    const charPlacements: { char: string; location: CharLocation }[] = chars.map((char, i) => ({
+      char,
+      location: {
         row: direction === 'down' ? row + i : row,
         col: direction === 'right' ? col + i : col,
-      };
+      },
+    }));
 
-      const canPlace = this.canPlaceCharAt(char, location, tempGrid);
-      if (!canPlace) return false;
-      this.placeCharAt(char, location, tempGrid);
-    }
+    // Make sure all characters can be placed individually
+    const someCharCantBePlaced = charPlacements.some(
+      ({ char, location }) => !this.canPlaceCharAt(char, location, grid),
+    );
+    if (someCharCantBePlaced) return false;
 
-    return true;
+    // Make sure that the word as a whole doesn't conflict with any neighbors
+    const nonBlockCharPlacements = charPlacements.slice(1, -1);
+    const nonBlockNeighborLocations: CharLocation[] = nonBlockCharPlacements.flatMap(
+      ({ location: { row, col } }) => {
+        if (direction === 'down') {
+          const left = { row, col: col - 1 };
+          const right = { row, col: col + 1 };
+          return [left, right];
+        } else {
+          const up = { col, row: row - 1 };
+          const down = { col, row: row + 1 };
+          return [up, down];
+        }
+      },
+    );
+
+    // Each neighbor location should either be empty, or part of a word that goes in the opposite direction
+    const allNeighborsValid = nonBlockNeighborLocations.every((neighborLocation) => {
+      const existing = this.charAt(neighborLocation, grid);
+      if (typeof existing === 'undefined') return true;
+
+      const neighborWord = this._words.find(({ placed, chars }) => {
+        return (
+          placed &&
+          chars.find(
+            ({ location: { row, col } }) =>
+              row === neighborLocation.row && col === neighborLocation.col,
+          )
+        );
+      }) as PlacedWord;
+
+      if (!neighborWord) {
+        throw new Error(
+          `Unable to find placed word containing character '${existing}' at ${JSON.stringify(
+            neighborLocation,
+          )}`,
+        );
+      }
+
+      return neighborWord.location.direction !== direction;
+    });
+
+    return allNeighborsValid;
   };
 
   private placeWordAt = (toPlace: Word, location: WordLocation, grid = this._grid): void => {
     const { word } = toPlace;
     const { row, col, direction } = location;
     const chars = word.split('');
-    chars.forEach((char, i) =>
-      this.placeCharAt(
-        char,
-        {
-          row: direction === 'down' ? row + i : row,
-          col: direction === 'right' ? col + i : col,
-        },
-        grid,
-      ),
-    );
+
+    const charPlacements: PlacedChar[] = chars.map((char, i) => ({
+      char,
+      location: {
+        row: direction === 'down' ? row + i : row,
+        col: direction === 'right' ? col + i : col,
+      },
+    }));
+
+    charPlacements.forEach(({ char, location }) => this.placeCharAt(char, location, grid));
 
     toPlace.placed = true;
     toPlace.location = location;
+    toPlace.chars = charPlacements;
   };
 
   private canPlaceCharAt = (char: string, location: CharLocation, grid = this._grid): boolean => {
@@ -205,41 +258,12 @@ export class CrosswordGenerator {
     const existing = this.charAt({ row, col }, grid);
 
     // A blocked character should not exist at this location
+    // TODO technically this is allowed for a char placement, but we don't want to allow it to be
+    // the only overlap between two words. We can modify findAllPossibleWordLocations to prevent this
     if (existing === BLOCKED_CELL_CHAR) return false;
 
     // A different character should not already exist at this location
     if (existing && existing !== char) return false;
-
-    // Placing this character cannot form a 2x2 group of characters in the grid
-    const up: CharLocation = { row: -1, col: 0 };
-    const down: CharLocation = { row: 1, col: 0 };
-    const left: CharLocation = { row: 0, col: -1 };
-    const right: CharLocation = { row: 0, col: 1 };
-    const upAndLeft: CharLocation = { row: -1, col: -1 };
-    const upAndRight: CharLocation = { row: -1, col: 1 };
-    const downAndLeft: CharLocation = { row: 1, col: -1 };
-    const downAndRight: CharLocation = { row: 1, col: 1 };
-
-    type Group = [CharLocation, CharLocation, CharLocation];
-    type Groups = [Group, Group, Group, Group];
-    const groups: Groups = [
-      [right, upAndRight, up],
-      [up, upAndLeft, left],
-      [left, downAndLeft, down],
-      [down, downAndRight, right],
-    ];
-
-    const formsA2x2 = groups.some((group) => {
-      const charsInGroup = group
-        .map(({ row: rowOffset, col: colOffset }) =>
-          this.charAt({ row: row + rowOffset, col: col + colOffset }, grid),
-        )
-        .filter((char) => char !== BLOCKED_CELL_CHAR)
-        .filter(Boolean) as string[];
-      // If the group has 3 characters, adding a char would make a 2x2 group
-      return charsInGroup.length === 3;
-    });
-    if (formsA2x2) return false;
 
     return true;
   };
