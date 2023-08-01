@@ -4,12 +4,13 @@
 
   const gen = new CrosswordGenerator({
     words: toPlace,
+    numPlacementIterations: 2,
+    randomizeWords: true,
     weights: {
       minimizeHeight: 0.45,
       minimizeWidth: 0.45,
       maximizeIntersections: 0.1,
     },
-    // randomizeWords: true,
   });
 
   let generating = false;

@@ -1,7 +1,6 @@
-import type { reset } from '__sveltekit/paths';
-
 interface CrosswordGeneratorArgs {
   words: string[];
+  numPlacementIterations: number;
   randomizeWords?: boolean;
   weights: {
     minimizeWidth: number;
@@ -109,11 +108,14 @@ export class CrosswordGenerator {
 
   generate = (): void => {
     this.setup();
-    this._words.forEach((word) => {
-      if (!word.placed) {
-        this.placeWord(word);
-      }
-    });
+
+    for (let _ = 0; _ < this.args.numPlacementIterations; _++) {
+      this._words.forEach((word) => {
+        if (!word.placed) {
+          this.placeWord(word);
+        }
+      });
+    }
   };
 
   private setup = (): void => {
