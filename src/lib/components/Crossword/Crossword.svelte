@@ -9,14 +9,28 @@
   export let cellBackgroundColor: string | undefined = 'transparent';
   export let gridBackgroundColor: string | undefined = 'transparent';
 
+  export const download = (): void => {
+    if (!svgElm) return;
+    const blob = new Blob([svgElm.outerHTML.toString()]);
+
+    const aElm = document.createElement('a');
+    aElm.download = 'crossword.svg';
+    aElm.href = URL.createObjectURL(blob);
+    aElm.click();
+    aElm.remove();
+  };
+
   const rows = grid.length;
   const cols = grid[0]?.length ?? 0;
 
   const svgWidth = cellSize * cols;
   const svgHeight = cellSize * rows;
+
+  let svgElm: SVGSVGElement;
 </script>
 
 <svg
+  bind:this={svgElm}
   width="100%"
   viewBox="0 0 {svgWidth} {svgHeight}"
   xmlns="http://www.w3.org/2000/svg"

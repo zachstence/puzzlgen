@@ -12,10 +12,14 @@
       maximizeIntersections: 0.1,
     },
   });
+
+  let crossword: Crossword;
 </script>
 
 <button class="btn btn-primary" on:click={gen.generate}>Generate</button>
 
+<button class="btn btn-primary" on:click={crossword.download}>Download</button>
+
 {#if $gen.generated}
-  <Crossword grid={$gen.grid} cellSize={30} />
+  <Crossword bind:this={crossword} grid={$gen.grid} cellSize={30} />
 {/if}
