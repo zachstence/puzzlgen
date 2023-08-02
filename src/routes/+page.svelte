@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { CrosswordGenerator, type Word } from '$lib/CrosswordGenerator';
-  import { words as toPlace } from '$lib/words';
+  import { CrosswordGenerator, words as toPlace } from '$lib';
 
   const gen = new CrosswordGenerator({
     words: toPlace,
@@ -12,38 +11,18 @@
       maximizeIntersections: 0.1,
     },
   });
-
-  let generating = false;
-  let generated = false;
-  let grid: string[][] = [];
-  let words: Word[] = [];
-
-  const generate = (): void => {
-    generating = true;
-    generated = false;
-    gen.generate();
-    generated = true;
-    generating = false;
-
-    grid = gen.grid;
-    words = gen.words;
-  };
 </script>
 
-<button on:click={generate}>Generate</button>
+<button on:click={gen.generate}>Generate</button>
 
-<pre>generating: {generating}</pre>
-<pre>generated: {generated}</pre>
+<pre>generating: {$gen.generating}</pre>
+<pre>generated: {$gen.generated}</pre>
 
-{#if generating}
-  Generating...
-{/if}
-
-{#if generated}
+{#if $gen.generated}
   <div class="generated">
     <table class="grid">
       <tbody>
-        {#each grid as row}
+        {#each $gen.grid as row}
           <tr>
             {#each row as char}
               {#if char}
@@ -67,7 +46,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each words as word}
+        {#each $gen.words as word}
           <tr>
             <td>{word.word}</td>
             <td>{word.placed}</td>

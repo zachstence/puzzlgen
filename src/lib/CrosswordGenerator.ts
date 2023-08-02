@@ -1,3 +1,5 @@
+import { writable, type Readable } from 'svelte/store';
+
 interface CrosswordGeneratorArgs {
   words: string[];
   numPlacementIterations: number;
@@ -63,12 +65,26 @@ interface GridDimensions {
 // const BLOCKED_CELL_CHAR = '​';
 const BLOCKED_CELL_CHAR = '#';
 
-export class CrosswordGenerator {
+export class CrosswordGenerator implements Readable<CrosswordGenerator> {
   constructor(readonly args: CrosswordGeneratorArgs) {}
+
+  private _store = writable(this);
+
+  private _generated = false;
+
+  private _generating = false;
 
   private _words: Word[] = [];
 
   private _grid: Grid = {};
+
+  get generated(): boolean {
+    return this._generated;
+  }
+
+  get generating(): boolean {
+    return this._generating;
+  }
 
   get words(): Word[] {
     return this._words;
@@ -106,7 +122,14 @@ export class CrosswordGenerator {
     return this._words.filter(CrosswordGenerator.isNotPlacedWord);
   }
 
+  subscribe: Readable<this>['subscribe'] = (run, invalidate) => {
+    return this._store.subscribe(run, invalidate);
+  };
+
   generate = (): void => {
+    this._generating = true;
+    this._generated = false;
+
     this.setup();
 
     for (let _ = 0; _ < this.args.numPlacementIterations; _++) {
@@ -116,6 +139,16 @@ export class CrosswordGenerator {
         }
       });
     }
+
+    this._generated = true;
+    this._generating = false;
+
+    this.tick();
+  };
+
+  /** Notify store subscribers of new values */
+  private tick = (): void => {
+    this._store.set(this);
   };
 
   private setup = (): void => {
@@ -131,11 +164,14 @@ export class CrosswordGenerator {
     if (this.args.randomizeWords) {
       this._words.sort(() => Math.round(Math.random() * 2 - 1));
     }
+
+    this.tick();
   };
 
   private reset = (): void => {
     this._words = [];
     this._grid = {};
+    this.tick();
   };
 
   private placeWord = (toPlace: Word): void => {
