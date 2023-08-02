@@ -1,5 +1,6 @@
 <script lang="ts">
   import { CrosswordGenerator, words as toPlace } from '$lib';
+  import Crossword from '$lib/components/Crossword.svelte';
 
   const gen = new CrosswordGenerator({
     words: toPlace,
@@ -20,21 +21,7 @@
 
 {#if $gen.generated}
   <div class="generated">
-    <table class="grid">
-      <tbody>
-        {#each $gen.grid as row}
-          <tr>
-            {#each row as char}
-              {#if char}
-                <td><div>{char}</div></td>
-              {:else}
-                <td />
-              {/if}
-            {/each}
-          </tr>
-        {/each}
-      </tbody>
-    </table>
+    <Crossword grid={$gen.grid} />
 
     <table class="words">
       <thead>
@@ -69,29 +56,6 @@
     display: flex;
     flex-direction: row;
     justify-content: space-around;
-  }
-
-  table {
-    border-collapse: collapse;
-    font-family: monospace;
-  }
-
-  table.grid {
-    font-size: 24px;
-  }
-
-  table.grid td:has(div) {
-    border: 1px solid black;
-    width: 30px;
-    height: 30px;
-  }
-
-  table.grid td div {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    font-weight: 700;
   }
 
   table.words {
