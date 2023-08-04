@@ -12,7 +12,14 @@
       <!-- TODO better name -->
       <a class="navbar-center btn btn-ghost text-xl mx-auto" href="/">Crossword Generator</a>
 
-      <ThemeToggle class="navbar-end" />
+      <div class="navbar-end flex flex-row gap-2">
+        <ThemeToggle />
+        <a
+          class="btn btn-ghost"
+          href="https://github.com/zachstence/crossword-generator"
+          target="_blank">GitHub</a
+        >
+      </div>
     </nav>
   </header>
 

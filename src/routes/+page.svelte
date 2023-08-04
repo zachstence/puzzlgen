@@ -1,25 +1,40 @@
 <script lang="ts">
-  import { CrosswordGenerator, words as toPlace } from '$lib';
-  import { Crossword } from '$lib/components';
+  import { createCrosswordConfig, createCrosswordStyle, CrosswordGenerator } from '$lib';
+  import { Actions, Controls, Crossword } from '$lib/components';
 
-  const gen = new CrosswordGenerator({
-    words: toPlace,
-    numPlacementIterations: 2,
-    randomizeWords: true,
-    weights: {
-      minimizeHeight: 0.45,
-      minimizeWidth: 0.45,
-      maximizeIntersections: 0.1,
-    },
-  });
+  const config = createCrosswordConfig();
 
-  let crossword: Crossword;
+  const style = createCrosswordStyle();
+
+  $: gen = new CrosswordGenerator($config);
+
+  let crossword: Crossword | undefined;
 </script>
 
-<button class="btn btn-primary" on:click={gen.generate}>Generate</button>
+<div class="w-full h-full flex flex-row items-center space-between gap-8 p-4">
+  <aside class="shrink-0 h-full flex flex-col gap-4">
+    <section>
+      <Actions onGenerate={gen.generate} onDownload={crossword?.download} />
+    </section>
+    <section class="overflow-auto scroll">
+      <Controls {config} {style} />
+    </section>
+  </aside>
 
-<button class="btn btn-primary" on:click={crossword.download}>Download</button>
+  <section class="flex-1 h-full flex items-center justify-center overflow-hidden">
+    {#if $gen.generated}
+      <Crossword
+        class="flex items-center justify-center"
+        bind:this={crossword}
+        grid={$gen.grid}
+        {style}
+      />
+    {/if}
+  </section>
+</div>
 
-{#if $gen.generated}
-  <Crossword bind:this={crossword} grid={$gen.grid} cellSize={30} />
-{/if}
+<style>
+  section {
+    @apply bg-base-300 p-4 rounded-2xl shadow-xl;
+  }
+</style>

@@ -1,6 +1,6 @@
 import { writable, type Readable } from 'svelte/store';
 
-interface CrosswordGeneratorArgs {
+export interface CrosswordGeneratorArgs {
   words: string[];
   numPlacementIterations: number;
   randomizeWords?: boolean;

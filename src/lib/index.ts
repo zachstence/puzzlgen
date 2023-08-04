@@ -1,5 +1,5 @@
 export * from './components';
-export * from './CrosswordGenerator';
 
-// TODO accept words from UI
-export * from './words';
+export * from './crossword-config.store';
+export * from './crossword-style.store';
+export * from './CrosswordGenerator';
